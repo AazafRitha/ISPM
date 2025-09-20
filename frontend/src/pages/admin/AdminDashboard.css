@@ -1,0 +1,82 @@
+/* Page shell */
+.adm-wrap { display: grid; gap: 16px; }
+.adm-h2 { margin: 0 0 4px 0; font-size: 22px; }
+.adm-sub { margin: 0; color: #555; }
+
+/* Title bar */
+.adm-titlebar {
+  display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: space-between;
+  gap: 12px;
+}
+
+/* Buttons */
+.btn {
+  background: #0f172a; color: #fff; border: none;
+  padding: 8px 12px; border-radius: 6px; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.05); }
+.adm-actions { display: flex; gap: 8px; }
+
+/* Cards / grid */
+.card {
+  background: #fff; border: 1px solid #e5e5e5; border-radius: 10px;
+  padding: 16px;
+}
+.card-title { margin: 0 0 10px; font-size: 16px; }
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.kpi { text-decoration: none; color: inherit; }
+.kpi-title { color: #666; }
+.kpi-value { font-size: 28px; font-weight: 700; margin: 6px 0; }
+.kpi-more { color: #0f172a; font-weight: 600; }
+
+/* Two columns */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Meter */
+.meter {
+  position: relative; height: 14px; background: #f2f4f7; border-radius: 7px;
+  overflow: hidden; margin-bottom: 8px;
+}
+.meter .bar { height: 100%; background: #22c55e; }
+.meter-label { font-size: 13px; color: #333; margin-top: 4px; }
+
+/* Meta list */
+.meta { margin: 10px 0 0; padding-left: 18px; }
+
+/* Quick links */
+.quick-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.ql {
+  display: block; padding: 10px; text-decoration: none; color: #0f172a;
+  background: #f7f7f7; border: 1px solid #e5e5e5; border-radius: 8px;
+}
+.ql:hover { background: #f0f2f5; }
+
+/* Table */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th, .tbl td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+.tbl th { background: #fafafa; }
+
+/* Alerts */
+.alert {
+  background: #fffbe6; border: 1px solid #ffe58f; color: #ad8b00;
+  padding: 10px 12px; border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .adm-titlebar { flex-direction: column; align-items: flex-start; }
+}

@@ -1,10 +1,6 @@
 import React from "react";
+import EmployeesList from "../../components/admin/EmployeesList";
 
 export default function EmployeesManagement() {
-  return (
-    <div>
-      <h1>Employee Management</h1>
-      <p>This page is under construction.</p>
-    </div>
-  );
+  return <EmployeesList />;
 }

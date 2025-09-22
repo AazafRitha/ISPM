@@ -1,0 +1,61 @@
+/* Shared styles for legal pages (Privacy/Terms) */
+.legal-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.legal-hero {
+  background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  color: #fff;
+  padding: 2.5rem 1.25rem;
+  border-radius: 16px;
+  margin: 1.5rem 0 2rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.legal-hero h1 {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+.legal-hero p {
+  margin: 0.75rem 0 0;
+  opacity: 0.95;
+}
+
+.legal-section {
+  margin: 1.75rem 0 0;
+}
+
+.legal-section h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem;
+  color: #0f172a;
+}
+
+.legal-section p,
+.legal-section li {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.legal-section ul {
+  margin: 0.5rem 0 0 1.25rem;
+}
+
+.legal-meta {
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+@media (max-width: 640px) {
+  .legal-hero {
+    padding: 1.5rem 1rem;
+  }
+  .legal-hero h1 {
+    font-size: 1.5rem;
+  }
+}

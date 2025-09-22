@@ -49,8 +49,25 @@ export default function ContentShow() {
               src={content.url}
               title={content.title}
               frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
+              loading="lazy"
+              onError={(e) => {
+                console.error('YouTube video failed to load:', e);
+                e.target.style.display = 'none';
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'youtube-error';
+                errorDiv.innerHTML = `
+                  <div style="padding: 2rem; text-align: center; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px;">
+                    <h3 style="color: #6c757d; margin-bottom: 1rem;">Video Unavailable</h3>
+                    <p style="color: #6c757d; margin-bottom: 1rem;">This video cannot be played at the moment.</p>
+                    <a href="${content.url}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: none;">
+                      Watch on YouTube →
+                    </a>
+                  </div>
+                `;
+                e.target.parentNode.appendChild(errorDiv);
+              }}
             ></iframe>
           </div>
         );
@@ -63,6 +80,18 @@ export default function ContentShow() {
               height="600"
               title={content.title}
             ></iframe>
+          </div>
+        );
+      case "poster":
+        return (
+          <div className="content-poster">
+            {content.posterImage && (
+              <img
+                src={content.posterImage}
+                alt={content.title}
+                className="poster-image"
+              />
+            )}
           </div>
         );
       case "blog":

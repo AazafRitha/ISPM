@@ -5,6 +5,8 @@ import Header from "../../components/common/Header";
 import Footer from "../../components/common/Footer";
 import { quizApi } from "../../api/quizzes";
 import "./Quizzes.css";
+// Removed old banner image usage; no publicUrl needed
+import { badgeAssetForDifficulty } from "../../lib/badges";
 
 export default function Quizzes() {
   const navigate = useNavigate();
@@ -48,14 +50,7 @@ export default function Quizzes() {
     }
   };
 
-  const getDifficultyIcon = (difficulty) => {
-    switch (difficulty) {
-      case "easy": return "🟢";
-      case "medium": return "🟡";
-      case "hard": return "🔴";
-      default: return "⚪";
-    }
-  };
+  // Removed emojis for difficulty indicator per request
 
   return (
     <>
@@ -117,26 +112,24 @@ export default function Quizzes() {
         <div className="quizzes-grid">
           {filteredQuizzes.map((quiz) => (
             <div key={quiz._id || quiz.id} className="quiz-card">
-              {quiz.bannerImageUrl && (
-                <img
-                  src={quiz.bannerImageUrl}
-                  alt="Quiz Banner"
-                  className="quiz-banner"
-                />
-              )}
-              
+              {/* Difficulty-based banner replacing old image banner */}
+              <div className={`quiz-card-banner diff-${quiz.difficulty || 'medium'}`}>
+                <div className="quiz-card-banner-title">{quiz.title}</div>
+              </div>
+
               <div className="quiz-card-content">
                 <div className="quiz-header">
-                  <h3 className="quiz-title">{quiz.title}</h3>
+                  {/* Keep semantic title but hide visually to avoid duplication; banner shows title */}
+                  <h3 className="quiz-title visually-hidden">{quiz.title}</h3>
                   <div className="quiz-difficulty">
-                    <span className="difficulty-icon">
-                      {getDifficultyIcon(quiz.difficulty)}
-                    </span>
                     <span 
                       className="difficulty-badge"
                       style={{ backgroundColor: getDifficultyColor(quiz.difficulty) }}
                     >
                       {quiz.difficulty?.charAt(0).toUpperCase() + quiz.difficulty?.slice(1)}
+                    </span>
+                    <span className="category-chip">
+                      {(quiz.category || 'general').charAt(0).toUpperCase() + (quiz.category || 'general').slice(1)}
                     </span>
                   </div>
                 </div>
@@ -147,24 +140,35 @@ export default function Quizzes() {
 
                 <div className="quiz-meta">
                   <div className="meta-item">
-                    <span className="meta-icon">❓</span>
                     <span className="meta-text">{quiz.questions?.length || 0} questions</span>
                   </div>
                   <div className="meta-item">
-                    <span className="meta-icon">⏱️</span>
                     <span className="meta-text">
-                      {quiz.timeLimitMin ? `${quiz.timeLimitMin} min` : "No time limit"}
+                      {quiz.timeLimit ? `${quiz.timeLimit} min` : "No time limit"}
                     </span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="meta-icon">🎯</span>
-                    <span className="meta-text">{quiz.passingScore}% to pass</span>
                   </div>
                 </div>
 
+                {/* What employee will get after completion */}
+                {(() => {
+                  const asset = badgeAssetForDifficulty(quiz.difficulty);
+                  return (
+                    <div className="quiz-earn-hint">
+                      <img
+                        src={asset.image}
+                        alt={asset.title}
+                        className="badge-thumb"
+                        loading="lazy"
+                      />
+                      <span>
+                        Earn after completion: <strong>{asset.title}</strong>
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 {quiz.badgeTitle && (
                   <div className="quiz-badge">
-                    <span className="badge-icon">🏆</span>
                     <span className="badge-text">Earn: {quiz.badgeTitle}</span>
                   </div>
                 )}

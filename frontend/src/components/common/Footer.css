@@ -258,3 +258,25 @@
 .footer-bottom b {
   font-weight: 700;
 }
+
+/* Legal links */
+.footer-legal {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-legal-link {
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.footer-legal-link:hover {
+  color: #f1f5f9;
+}
+
+.footer-sep {
+  color: #64748b;
+}

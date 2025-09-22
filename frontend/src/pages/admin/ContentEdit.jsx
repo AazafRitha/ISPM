@@ -27,7 +27,7 @@ export default function ContentEdit() {
   const [item, setItem] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const [bannerUploading, setBannerUploading] = useState(false);
+  // Banner removed
   const [imgUploading, setImgUploading] = useState(false);
   const bodyRef = useRef(null);
 
@@ -57,18 +57,7 @@ export default function ContentEdit() {
     return true;
   }, [item]);
 
-  async function replaceBanner(file) {
-    if (!file) return;
-    setBannerUploading(true);
-    try {
-      const data = await contentApi.uploadImage(file);
-      setItem((i) => ({ ...i, bannerImage: data.url }));
-    } catch (e) {
-      alert(e.message || "Banner upload failed");
-    } finally {
-      setBannerUploading(false);
-    }
-  }
+  // replaceBanner removed
 
   async function insertInlineImg(file) {
     if (!file) return;
@@ -164,27 +153,7 @@ export default function ContentEdit() {
           </div>
         </div>
 
-        {/* Banner */}
-        <div className="ac-card">
-          <div className="ac-field">
-            <label className="ac-label">Banner image</label>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={(e) => replaceBanner(e.target.files?.[0])}
-            />
-            {bannerUploading && (
-              <div className="ac-hint">Uploading…</div>
-            )}
-            {item.bannerImage && (
-              <img
-                src={item.bannerImage}
-                alt="banner"
-                className="ac-banner"
-              />
-            )}
-          </div>
-        </div>
+        {/* Banner removed */}
 
         <div className="ac-grid">
           <div className="ac-field">
@@ -207,6 +176,7 @@ export default function ContentEdit() {
               <option value="pdf">PDF</option>
               <option value="blog">Blog</option>
               <option value="writeup">Write-up</option>
+              <option value="poster">Poster</option>
             </select>
           </div>
 
@@ -258,6 +228,18 @@ export default function ContentEdit() {
                 value={item.body || ""}
                 onChange={(e) => setItem({ ...item, body: e.target.value })}
                 className="ac-textarea"
+              />
+            </div>
+          )}
+
+          {item.type === "poster" && (
+            <div className="ac-field ac-col-2">
+              <label className="ac-label">Poster Image URL</label>
+              <input
+                value={item.posterImage || ""}
+                onChange={(e) => setItem({ ...item, posterImage: e.target.value })}
+                className="ac-input"
+                placeholder="https://example.com/poster.jpg"
               />
             </div>
           )}

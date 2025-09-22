@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Header from "../../components/common/Header";
 import Footer from "../../components/common/Footer";
 import { contentApi } from "../../api/content";
@@ -7,11 +7,25 @@ import "./Learn.css";
 
 export default function Learn() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [content, setContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("");
+
+  // Determine if we're on the public or employee route
+  const isPublicRoute = location.pathname.startsWith('/learn');
+
+  
+  const typeChips = [
+    { label: "All", value: "" },
+    { label: "Videos", value: "youtube" },
+    { label: "Documents", value: "pdf" },
+    { label: "Articles", value: "blog" },
+    { label: "Write-ups", value: "writeup" },
+    { label: "Posters", value: "poster" },
+  ];
 
   useEffect(() => {
     const loadContent = async () => {
@@ -46,6 +60,8 @@ export default function Learn() {
         return "📝";
       case "writeup":
         return "📋";
+      case "poster":
+        return "🖼️";
       default:
         return "📚";
     }
@@ -61,6 +77,8 @@ export default function Learn() {
         return "#059669";
       case "writeup":
         return "#7c3aed";
+      case "poster":
+        return "#0ea5e9";
       default:
         return "#6b7280";
     }
@@ -73,8 +91,10 @@ export default function Learn() {
         <div className="learn-header">
           <h1>Educational Content</h1>
           <p>
-            Welcome to our learning hub! Here you can access educational materials, 
-            videos, and resources to improve your cybersecurity knowledge.
+            {isPublicRoute 
+              ? "Explore our comprehensive collection of cybersecurity educational materials, videos, and resources. Learn about security best practices, threat awareness, and protection strategies."
+              : "Welcome to our learning hub! Here you can access educational materials, videos, and resources to improve your cybersecurity knowledge."
+            }
           </p>
         </div>
 
@@ -88,20 +108,28 @@ export default function Learn() {
               className="search-input"
             />
           </div>
-          <div className="filter-box">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Types</option>
-              <option value="youtube">YouTube Videos</option>
-              <option value="pdf">PDF Documents</option>
-              <option value="blog">Blog Posts</option>
-              <option value="writeup">Write-ups</option>
-            </select>
+          <div className="filter-chips" aria-label="Filter by type">
+            {typeChips.map((chip) => (
+              <button
+                key={chip.value || "all"}
+                className={`chip ${filterType === chip.value ? "active" : ""}`}
+                onClick={() => setFilterType(chip.value)}
+                type="button"
+                aria-pressed={filterType === chip.value}
+              >
+                {chip.label}
+              </button>
+            ))}
           </div>
         </div>
+
+        {!loading && !error && (
+          <div className="learn-results-meta">
+            <span className="results-count">
+              Showing {filteredContent.length} {filteredContent.length === 1 ? "result" : "results"}
+            </span>
+          </div>
+        )}
 
         {loading && (
           <div className="loading">
@@ -127,6 +155,21 @@ export default function Learn() {
         <div className="content-grid">
           {filteredContent.map((item) => (
             <div key={item._id || item.id} className="content-card">
+              {(item.posterImage || item.bannerImage) ? (
+                <div className="content-media">
+                  <img
+                    src={item.posterImage || item.bannerImage}
+                    alt={item.title}
+                    loading="lazy"
+                  />
+                </div>
+              ) : (
+                <div className="content-media placeholder">
+                  <span className="placeholder-icon" style={{ backgroundColor: getTypeColor(item.type) }}>
+                    {getTypeIcon(item.type)}
+                  </span>
+                </div>
+              )}
               <div className="content-card-header">
                 <div className="content-type-badge" style={{ backgroundColor: getTypeColor(item.type) }}>
                   <span className="type-icon">{getTypeIcon(item.type)}</span>
@@ -134,12 +177,28 @@ export default function Learn() {
                 </div>
                 <div className="content-date">
                   {new Date(item.publishedAt || item.createdAt).toLocaleDateString()}
+                  {(item.publishedAt || item.createdAt) && (Date.now() - new Date(item.publishedAt || item.createdAt).getTime()) < (14 * 24 * 60 * 60 * 1000) && (
+                    <span className="new-badge" title="Recently published">New</span>
+                  )}
                 </div>
               </div>
               
               <div className="content-card-body">
                 <h3 className="content-title">{item.title}</h3>
                 <p className="content-description">{item.description}</p>
+                {item.topic && (
+                  <div className="topic-badge">{item.topic}</div>
+                )}
+                {(Array.isArray(item.tags) && item.tags.length > 0) && (
+                  <div className="content-flags">
+                    {item.tags.includes('required') && (
+                      <span className="flag-badge required" title="Required module">Required</span>
+                    )}
+                    {item.tags.includes('recommended') && (
+                      <span className="flag-badge recommended" title="Recommended module">Recommended</span>
+                    )}
+                  </div>
+                )}
                 
                 {item.tags && item.tags.length > 0 && (
                   <div className="content-tags">
@@ -155,8 +214,9 @@ export default function Learn() {
               
               <div className="content-card-footer">
                 <button
-                  onClick={() => navigate(`/employee/learn/${item._id || item.id}`)}
+                  onClick={() => navigate(isPublicRoute ? `/content/${item._id || item.id}` : `/employee/learn/${item._id || item.id}`)}
                   className="learn-btn"
+                  aria-label={`Start ${item.title}`}
                 >
                   Start Learning
                 </button>

@@ -1,10 +1,6 @@
 import React from "react";
+import TemplateManager from "../../components/admin/TemplateManager";
 
 export default function PhishingSimulation() {
-  return (
-    <div>
-      <h1>Phishing Simulation</h1>
-      <p>This page is under construction.</p>
-    </div>
-  );
+  return <TemplateManager />;
 }

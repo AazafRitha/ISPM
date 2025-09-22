@@ -12,6 +12,7 @@ const sampleContent = [
     type: 'blog',
     status: 'published',
     body: '<h2>Introduction</h2><p>Password security is one of the most important aspects of cybersecurity. In this guide, we\'ll cover best practices for creating and managing strong passwords.</p><h3>Key Points:</h3><ul><li>Use at least 12 characters</li><li>Include uppercase, lowercase, numbers, and symbols</li><li>Don\'t reuse passwords across accounts</li><li>Use a password manager</li></ul>',
+    bannerImage: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&h=400&fit=crop&crop=center',
     tags: ['security', 'passwords', 'authentication'],
     publishedAt: new Date('2024-01-15')
   },
@@ -21,6 +22,7 @@ const sampleContent = [
     type: 'youtube',
     status: 'published',
     url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    bannerImage: 'https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=400&fit=crop&crop=center',
     tags: ['phishing', 'social-engineering', 'awareness'],
     publishedAt: new Date('2024-01-20')
   },
@@ -30,6 +32,7 @@ const sampleContent = [
     type: 'pdf',
     status: 'published',
     url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    bannerImage: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop&crop=center',
     tags: ['data-protection', 'privacy', 'compliance'],
     publishedAt: new Date('2024-01-25')
   },

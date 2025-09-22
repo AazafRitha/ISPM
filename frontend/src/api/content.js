@@ -1,6 +1,22 @@
 // Author: Aazaf Ritha
 const BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
+function apiOrigin() {
+  try {
+    return new URL(BASE).origin;
+  } catch (_) {
+    return "http://localhost:5000";
+  }
+}
+
+function absolutize(u) {
+  if (!u) return u;
+  if (typeof u !== 'string') return u;
+  if (u.startsWith('http://') || u.startsWith('https://') || u.startsWith('blob:') || u.startsWith('data:')) return u;
+  if (u.startsWith('/')) return `${apiOrigin()}${u}`;
+  return `${apiOrigin()}/${u}`;
+}
+
 function authHeader() {
   const t = localStorage.getItem("token");
   return t ? { Authorization: `Bearer ${t}` } : {};
@@ -90,7 +106,9 @@ export const contentApi = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || data.message || "Upload failed");
-    return data.data || data;
+    const out = data.data || data;
+    if (out && out.url) out.url = absolutize(out.url);
+    return out;
   },
 
   // Upload Image (jpg/png/webp) -> { url, filename, ... }
@@ -104,6 +122,8 @@ export const contentApi = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || data.message || "Upload failed");
-    return data.data || data;
+    const out = data.data || data;
+    if (out && out.url) out.url = absolutize(out.url);
+    return out;
   },
 };

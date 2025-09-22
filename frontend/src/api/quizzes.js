@@ -1,6 +1,22 @@
 // Author: Aazaf Ritha
 const BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 
+async function parseOrEmpty(res) {
+  try {
+    return await res.json();
+  } catch (_) {
+    return {};
+  }
+}
+
+function throwHttpError(res, data, fallbackMessage) {
+  const err = new Error(data?.error || data?.message || fallbackMessage);
+  err.status = res.status;
+  err.data = data;
+  err.url = res.url;
+  throw err;
+}
+
 function authHeader() {
   const t = localStorage.getItem("token");
   return t ? { Authorization: `Bearer ${t}` } : {};
@@ -14,15 +30,15 @@ export const quizApi = {
     const res = await fetch(`${BASE}/quizzes${qs.toString() ? `?${qs}` : ""}`, {
       headers: { ...authHeader() },
     });
-    if (!res.ok) throw new Error("Failed to load quizzes");
-    const data = await res.json();
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Failed to load quizzes");
     return data; // Direct JSON response
   },
 
   async getOne(id) {
     const res = await fetch(`${BASE}/quizzes/${id}`, { headers: { ...authHeader() } });
-    if (!res.ok) throw new Error("Failed to load quiz");
-    const data = await res.json();
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Failed to load quiz");
     return data; // Direct JSON response
   },
 
@@ -32,8 +48,8 @@ export const quizApi = {
       headers: { "Content-Type": "application/json", ...authHeader() },
       body: JSON.stringify(payload),
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || "Create failed");
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Create failed");
     return data;
   },
 
@@ -43,8 +59,8 @@ export const quizApi = {
       headers: { "Content-Type": "application/json", ...authHeader() },
       body: JSON.stringify(payload),
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || "Update failed");
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Update failed");
     return data;
   },
 
@@ -53,8 +69,8 @@ export const quizApi = {
       method: "DELETE",
       headers: { ...authHeader() },
     });
-    if (!res.ok) throw new Error("Delete failed");
-    const data = await res.json();
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Delete failed");
     return data;
   },
 
@@ -63,8 +79,8 @@ export const quizApi = {
       method: "POST",
       headers: { ...authHeader() },
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || "Publish failed");
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Publish failed");
     return data;
   },
 
@@ -73,8 +89,8 @@ export const quizApi = {
       method: "POST",
       headers: { ...authHeader() },
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || "Unpublish failed");
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Unpublish failed");
     return data;
   },
 
@@ -83,8 +99,8 @@ export const quizApi = {
       method: "POST",
       headers: { ...authHeader() },
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || "Duplicate failed");
+    const data = await parseOrEmpty(res);
+    if (!res.ok) throwHttpError(res, data, "Duplicate failed");
     return data;
   }
 };

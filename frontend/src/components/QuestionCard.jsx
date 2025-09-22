@@ -59,7 +59,6 @@ export default function QuestionCard({ q, onChange, onRemove }) {
             className="question-type-select"
           >
             <option value="mcq">Multiple Choice</option>
-            <option value="single">Single Answer</option>
             <option value="tf">True/False</option>
             <option value="short">Short Answer</option>
           </select>

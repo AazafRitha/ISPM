@@ -5,6 +5,8 @@ import Header from "../../components/common/Header";
 import Footer from "../../components/common/Footer";
 import { quizApi } from "../../api/quizzes";
 import "./QuizShow.css";
+import { publicUrl } from "../../lib/publicUrl";
+import { badgeAssetForDifficulty, saveEarnedBadge, hasBadgeForQuiz } from "../../lib/badges";
 
 export default function QuizShow() {
   const { id } = useParams();
@@ -18,6 +20,7 @@ export default function QuizShow() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [score, setScore] = useState(null);
+  const [claimed, setClaimed] = useState(false);
 
   useEffect(() => {
     const loadQuiz = async () => {
@@ -32,8 +35,9 @@ export default function QuizShow() {
         setError("");
         const data = await quizApi.getOne(id);
         setQuiz(data);
-        if (data.timeLimitMin) {
-          setTimeLeft(data.timeLimitMin * 60); // Convert minutes to seconds
+        // Backend uses timeLimit in minutes (0 = no limit)
+        if (data.timeLimit && data.timeLimit > 0) {
+          setTimeLeft(data.timeLimit * 60); // Convert minutes to seconds
         }
       } catch (err) {
         setError(err.message || "Failed to load quiz");
@@ -79,16 +83,21 @@ export default function QuizShow() {
     let totalQuestions = quiz.questions.length;
 
     quiz.questions.forEach(question => {
-      const userAnswer = answers[question.id];
-      if (!userAnswer) return;
+      const qid = question._id;
+      const userAnswer = answers[qid];
+      if (userAnswer == null || userAnswer === "") return;
 
-      if (question.type === "short") {
-        // For short answers, we'll consider it correct if answered
+      if (question.type === "text") {
+        // For text questions, consider it correct if answered (no auto-grading)
         correctAnswers++;
-      } else if (question.type === "tf" || question.type === "mcq" || question.type === "single") {
-        // Check if the selected option is correct
-        const selectedOption = question.options?.find(opt => opt.id === userAnswer);
-        if (selectedOption?.isCorrect) {
+      } else if (question.type === "multiple-choice") {
+        // Backend stores correctAnswer as index string (e.g., "0")
+        if (String(userAnswer) === String(question.correctAnswer)) {
+          correctAnswers++;
+        }
+      } else if (question.type === "true-false") {
+        // Backend stores correctAnswer as "True" or "False"
+        if (String(userAnswer).toLowerCase() === String(question.correctAnswer).toLowerCase()) {
           correctAnswers++;
         }
       }
@@ -102,6 +111,8 @@ export default function QuizShow() {
     setScore(finalScore);
     setQuizCompleted(true);
     setQuizStarted(false);
+    // Auto-prepare claim state if already claimed earlier
+    if (hasBadgeForQuiz(id)) setClaimed(true);
   };
 
   const formatTime = (seconds) => {
@@ -180,9 +191,12 @@ export default function QuizShow() {
       <>
         <Header />
         <div className="quiz-show-container">
+          <div className={`quiz-diff-banner diff-${quiz.difficulty || 'medium'}`}>
+            <h1 className="quiz-diff-banner-title">{quiz.title}</h1>
+          </div>
           <div className="quiz-results">
             <div className="results-header">
-              <h1>Quiz Completed!</h1>
+              <h1>Congratulations! 🎉</h1>
               <div className="score-display" style={{ color: getScoreColor(score) }}>
                 <span className="score-number">{score}%</span>
                 <span className="score-label">
@@ -204,24 +218,50 @@ export default function QuizShow() {
                 <span className="result-label">Your Score:</span>
                 <span className="result-value">{score}%</span>
               </div>
-              {quiz.badgeTitle && (
-                <div className="result-item">
-                  <span className="result-label">Badge:</span>
-                  <span className="result-value">{quiz.badgeTitle}</span>
-                </div>
-              )}
             </div>
 
-            {score >= quiz.passingScore && quiz.badgeTitle && (
-              <div className="badge-earned">
-                <div className="badge-icon">🏆</div>
-                <h3>Congratulations!</h3>
-                <p>You've earned the <strong>{quiz.badgeTitle}</strong> badge!</p>
-                {quiz.badgeDescription && (
-                  <p className="badge-description">{quiz.badgeDescription}</p>
-                )}
-              </div>
-            )}
+            {/* Badge earning display */}
+            <div className="badge-earn-section">
+              {(() => {
+                const asset = badgeAssetForDifficulty(quiz.difficulty);
+                return (
+                  <div className="badge-earn-card">
+                    <img src={asset.image} alt={asset.title} className="earned-badge-image" />
+                    <div className="badge-earn-content">
+                      <h3>You've earned a {quiz.difficulty} badge!</h3>
+                      <p>
+                        Congratulations on completing "{quiz.title}".
+                        {" "}This badge recognizes your achievement.
+                      </p>
+                      <div className="badge-earn-actions">
+                        <button
+                          className="btn btn-primary"
+                          disabled={claimed}
+                          onClick={() => {
+                            saveEarnedBadge({
+                              quizId: id,
+                              quizTitle: quiz.title,
+                              difficulty: quiz.difficulty,
+                              score,
+                            });
+                            setClaimed(true);
+                            alert("Badge claimed! View it on your Badges page.");
+                          }}
+                        >
+                          {claimed ? "Claimed" : "Claim Badge"}
+                        </button>
+                        <button
+                          className="btn btn-outline"
+                          onClick={() => navigate("/employee/badges")}
+                        >
+                          View Badges
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
 
             <div className="results-actions">
               <button onClick={() => navigate("/employee/quizzes")} className="btn btn-primary">
@@ -243,13 +283,11 @@ export default function QuizShow() {
       <>
         <Header />
         <div className="quiz-show-container">
+          <div className={`quiz-diff-banner diff-${quiz.difficulty || 'medium'}`}>
+            <h1 className="quiz-diff-banner-title">{quiz.title}</h1>
+          </div>
           <div className="quiz-intro">
-            {quiz.bannerImageUrl && (
-              <div className="quiz-banner-container">
-                <img src={quiz.bannerImageUrl} alt="Quiz Banner" className="quiz-banner-image" />
-                <div className="quiz-banner-overlay"></div>
-              </div>
-            )}
+            {/* Banner display removed */}
             
             <div className="quiz-info">
               <h1 className="quiz-title">{quiz.title}</h1>
@@ -257,6 +295,17 @@ export default function QuizShow() {
                 <p className="quiz-description">{quiz.description}</p>
               )}
               
+              {/* Show what employee will get after completion */}
+              {(() => {
+                const asset = badgeAssetForDifficulty(quiz.difficulty);
+                return (
+                  <div className="quiz-earn-hint" style={{marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}>
+                    <img src={asset.image} alt={asset.title} className="badge-thumb" />
+                    <span>After completion you can claim: <strong>{asset.title}</strong></span>
+                  </div>
+                );
+              })()}
+
               <div className="quiz-meta">
                 <div className="meta-item">
                   <span className="meta-label">Difficulty:</span>
@@ -274,7 +323,7 @@ export default function QuizShow() {
                 <div className="meta-item">
                   <span className="meta-label">Time Limit:</span>
                   <span className="meta-value">
-                    {quiz.timeLimitMin ? `${quiz.timeLimitMin} minutes` : "No time limit"}
+                    {quiz.timeLimit ? `${quiz.timeLimit} minutes` : "No time limit"}
                   </span>
                 </div>
                 <div className="meta-item">
@@ -289,8 +338,8 @@ export default function QuizShow() {
                   <li>Read each question carefully</li>
                   <li>Select the best answer for each question</li>
                   <li>You can change your answers before submitting</li>
-                  {quiz.timeLimitMin && (
-                    <li>You have {quiz.timeLimitMin} minutes to complete the quiz</li>
+                  {quiz.timeLimit && (
+                    <li>You have {quiz.timeLimit} minutes to complete the quiz</li>
                   )}
                   <li>You need {quiz.passingScore}% to pass</li>
                 </ul>
@@ -340,42 +389,46 @@ export default function QuizShow() {
 
         <div className="quiz-question">
           <div className="question-header">
-            <h2 className="question-title">{currentQ.stem}</h2>
-            <span className="question-type">{currentQ.type}</span>
+            <h2 className="question-title">{currentQ.question}</h2>
+            <span className="question-type">
+              {currentQ.type === 'multiple-choice' && 'Multiple Choice'}
+              {currentQ.type === 'true-false' && 'True/False'}
+              {currentQ.type === 'text' && 'Text'}
+            </span>
           </div>
 
           <div className="question-options">
-            {currentQ.type === "short" ? (
+            {currentQ.type === "text" ? (
               <textarea
-                value={answers[currentQ.id] || ""}
-                onChange={(e) => handleAnswerChange(currentQ.id, e.target.value)}
+                value={answers[currentQ._id] || ""}
+                onChange={(e) => handleAnswerChange(currentQ._id, e.target.value)}
                 placeholder="Type your answer here..."
                 className="short-answer-input"
                 rows="4"
               />
             ) : (
-              currentQ.options?.map((option, index) => (
-                <label key={option.id} className="option-label">
+              // For non-text questions, render radio options based on backend schema
+              (currentQ.type === 'true-false'
+                ? (currentQ.options && currentQ.options.length > 0 ? currentQ.options : ["True", "False"]) 
+                : (currentQ.options || [])
+              ).map((opt, index) => (
+                <label key={`${currentQ._id}-${index}`} className="option-label">
                   <input
-                    type={currentQ.type === "mcq" ? "checkbox" : "radio"}
-                    name={`question-${currentQ.id}`}
-                    value={option.id}
-                    checked={answers[currentQ.id] === option.id || 
-                             (currentQ.type === "mcq" && answers[currentQ.id]?.includes(option.id))}
+                    type="radio"
+                    name={`question-${currentQ._id}`}
+                    value={currentQ.type === 'multiple-choice' ? String(index) : String(opt)}
+                    checked={
+                      currentQ.type === 'multiple-choice'
+                        ? answers[currentQ._id] === String(index)
+                        : answers[currentQ._id] === String(opt)
+                    }
                     onChange={(e) => {
-                      if (currentQ.type === "mcq") {
-                        const currentAnswers = answers[currentQ.id] || [];
-                        const newAnswers = e.target.checked
-                          ? [...currentAnswers, option.id]
-                          : currentAnswers.filter(id => id !== option.id);
-                        handleAnswerChange(currentQ.id, newAnswers);
-                      } else {
-                        handleAnswerChange(currentQ.id, option.id);
-                      }
+                      const val = e.target.value;
+                      handleAnswerChange(currentQ._id, val);
                     }}
                     className="option-input"
                   />
-                  <span className="option-text">{option.text}</span>
+                  <span className="option-text">{opt}</span>
                 </label>
               ))
             )}

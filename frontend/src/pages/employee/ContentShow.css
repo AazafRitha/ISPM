@@ -73,6 +73,7 @@
   overflow: hidden;
 }
 
+/* Banner Styles */
 .content-banner {
   position: relative;
   width: 100%;
@@ -94,12 +95,10 @@
   right: 0;
   bottom: 0;
   background: linear-gradient(
-    135deg,
-    rgba(0, 0, 0, 0.3) 0%,
-    rgba(0, 0, 0, 0.1) 50%,
-    rgba(0, 0, 0, 0.4) 100%
+    to bottom,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.3) 100%
   );
-  backdrop-filter: blur(1px);
 }
 
 .content-title-section {
@@ -132,6 +131,19 @@
   border-radius: 0.5rem;
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.content-poster {
+  margin: 2rem 0;
+  text-align: center;
+}
+
+.poster-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
 }
 
 .content-youtube iframe,

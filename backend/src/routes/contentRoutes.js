@@ -10,6 +10,7 @@ import {
   uploadImage,
   uploadPdf
 } from '../controllers/contentController.js';
+import { uploadImageMiddleware, uploadPdfMiddleware } from '../middleware/mediaUpload.js';
 
 const router = express.Router();
 
@@ -24,8 +25,8 @@ router.delete('/:id', deleteContent);
 router.post('/:id/publish', publishContent);
 router.post('/:id/unpublish', unpublishContent);
 
-// File upload routes
-router.post('/upload/image', uploadImage);
-router.post('/upload/pdf', uploadPdf);
+// File upload routes (multipart form-data with field name "file")
+router.post('/upload/image', uploadImageMiddleware.single('file'), uploadImage);
+router.post('/upload/pdf', uploadPdfMiddleware.single('file'), uploadPdf);
 
 export default router;

@@ -78,6 +78,33 @@ export default function ContentManagement() {
 
   return (
     <div className="content-management">
+      {/* Top Header Bar */}
+      <div className="admin-header">
+        <div className="admin-header-left">
+          <h1 className="admin-title">Admin Dashboard</h1>
+        </div>
+        <div className="admin-header-right">
+          <span className="admin-welcome">Welcome, Administrator</span>
+          <div className="admin-avatar">A</div>
+        </div>
+      </div>
+
+      {/* Content Header */}
+      <div className="content-header">
+        <div className="content-header-left">
+          <h1 className="content-main-title">Educational Content Management</h1>
+          <p className="content-subtitle">Manage and organize educational content for employee training.</p>
+        </div>
+        <div className="content-header-actions">
+          <button
+            className="new-content-btn"
+            onClick={() => nav("/admin/content/create")}
+          >
+            + New Content
+          </button>
+        </div>
+      </div>
+
       <div className="cm-toolbar">
         <h2 className="cm-title">Educational Content</h2>
         <div className="cm-controls">
@@ -110,12 +137,6 @@ export default function ContentManagement() {
           <button className="btn btn-outline" onClick={load}>
             Refresh
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={() => nav("/admin/content/create")}
-          >
-            + Add
-          </button>
         </div>
       </div>
 
@@ -128,16 +149,6 @@ export default function ContentManagement() {
       <div className="cm-grid">
         {filtered.map((it) => (
           <div key={it._id || it.id} className="cm-card">
-            {it.bannerImage && (
-              <div className="cm-card-banner">
-                <img 
-                  src={it.bannerImage} 
-                  alt={it.title}
-                  className="cm-banner-image"
-                />
-                <div className="cm-banner-overlay"></div>
-              </div>
-            )}
             <div className="cm-card-head">
               <div className="cm-card-meta">
                 <div className="cm-card-title">{it.title}</div>

@@ -77,6 +77,20 @@ export default function QuizManage() {
     }
   };
 
+  const unpublish = async (id) => {
+    if (!confirm("Unpublish this quiz? It will be hidden from employees.")) return;
+    setBusyId(id);
+    try {
+      await quizApi.unpublish(id);
+      await load();
+      alert("Quiz moved back to draft.");
+    } catch (e) {
+      alert(e.message || "Unpublish failed");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const filtered = useMemo(() => items, [items]);
 
   return (
@@ -153,21 +167,13 @@ export default function QuizManage() {
             <div className="quiz-grid">
               {filtered.map(qz => (
                 <div key={qz._id || qz.id} className="quiz-card">
-                  {/* Banner */}
-                  {qz.bannerImage && (
-                    <div className="quiz-banner-container">
-                      <img
-                        src={qz.bannerImage}
-                        alt=""
-                        className="quiz-banner-image"
-                      />
-                      <div className="quiz-banner-overlay"></div>
-                    </div>
-                  )}
-
+                  <div className={`quiz-card-banner diff-${qz.difficulty || 'medium'}`}>
+                    <div className="quiz-card-banner-title">{qz.title || 'Untitled Quiz'}</div>
+                  </div>
                   <div className="quiz-card-content">
                     <div className="quiz-header">
-                      <div className="quiz-title">{qz.title}</div>
+                      {/* Title is shown in banner */}
+                      <div className="quiz-title visually-hidden">{qz.title}</div>
                       <div className="quiz-date">
                         {qz.createdAt ? new Date(qz.createdAt).toLocaleString() : ""}
                       </div>
@@ -216,13 +222,22 @@ export default function QuizManage() {
                           </button>
                         </>
                       ) : (
-                        <button
-                          className="action-btn duplicate-btn"
-                          disabled={busyId === (qz._id || qz.id)}
-                          onClick={() => duplicate(qz._id || qz.id)}
-                        >
-                          {busyId === (qz._id || qz.id) ? "Duplicating…" : "Duplicate"}
-                        </button>
+                        <>
+                          <button
+                            className="action-btn unpublish-btn"
+                            disabled={busyId === (qz._id || qz.id)}
+                            onClick={() => unpublish(qz._id || qz.id)}
+                          >
+                            {busyId === (qz._id || qz.id) ? "Unpublishing…" : "Unpublish"}
+                          </button>
+                          <button
+                            className="action-btn duplicate-btn"
+                            disabled={busyId === (qz._id || qz.id)}
+                            onClick={() => duplicate(qz._id || qz.id)}
+                          >
+                            {busyId === (qz._id || qz.id) ? "Duplicating…" : "Duplicate"}
+                          </button>
+                        </>
                       )}
 
                       <button
@@ -245,14 +260,6 @@ export default function QuizManage() {
       {preview && (
         <div className="modal-overlay" onClick={() => setPreview(null)}>
           <div className="modal-content quiz-preview-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Banner in preview */}
-            {preview.bannerImage && (
-              <img
-                src={preview.bannerImage}
-                alt=""
-                className="preview-banner"
-              />
-            )}
 
             <div className="modal-header">
               <div>

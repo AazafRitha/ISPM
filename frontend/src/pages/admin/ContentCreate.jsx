@@ -22,6 +22,56 @@ function YouTubeEmbed({ url }) {
   }
 }
 
+function PreviewModal({ item, onClose }) {
+  if (!item) return null;
+  const hasBanner = false; // banner removed
+  const isYouTube = item.type === "youtube" && !!item.url;
+  const isPdf = item.type === "pdf" && !!item.url;
+  const isPoster = item.type === "poster" && !!item.posterImage;
+  const isText = item.type === "blog" || item.type === "writeup";
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" style={{maxWidth: 720}} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.5rem'}}>
+          <div>
+            <h3 className="modal-title">Preview: {item.title}</h3>
+            <p className="modal-text">Type: {item.type}</p>
+          </div>
+          <button className="btn btn-outline" onClick={onClose}>Close</button>
+        </div>
+        <div className="modal-body">
+          {/* banner removed */}
+          {item.description && (
+            <p style={{color:'#374151',marginBottom:12}}>{item.description}</p>
+          )}
+          {isYouTube && (
+            <div className="preview-video-container"><YouTubeEmbed url={item.url} /></div>
+          )}
+          {isPdf && (
+            <div style={{marginTop:8}}>
+              <a href={item.url} target="_blank" rel="noreferrer">Open PDF in new tab</a>
+            </div>
+          )}
+          {isPoster && (
+            <div className="poster-preview-container">
+              <img src={item.posterImage} alt="poster" className="poster-preview" />
+            </div>
+          )}
+          {isText && (
+            <pre style={{whiteSpace:'pre-wrap',background:'#f9fafb',padding:12,borderRadius:8,border:'1px solid #e5e7eb'}}>
+              {item.body || "(no content)"}
+            </pre>
+          )}
+        </div>
+        <div className="modal-actions" style={{marginTop:12,justifyContent:'flex-end'}}>
+          <button className="btn btn-outline" onClick={onClose}>Looks good</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ContentCreate() {
   const nav = useNavigate();
 
@@ -31,42 +81,87 @@ export default function ContentCreate() {
   const [url, setUrl] = useState("");
   const [body, setBody] = useState("");
   const [tags, setTags] = useState("");
-  const [bannerImage, setBannerImage] = useState("");
-
-  const [bannerPreview, setBannerPreview] = useState("");
-  const [bannerUploading, setBannerUploading] = useState(false);
+  const [topic, setTopic] = useState("");
+  // Banner removed per requirements
+  const [posterImage, setPosterImage] = useState("");
+  const [posterPreview, setPosterPreview] = useState("");
+  const [posterUploading, setPosterUploading] = useState(false);
   const [pdfUploading, setPdfUploading] = useState(false);
   const [imgUploading, setImgUploading] = useState(false);
   const bodyRef = useRef(null);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [previewOf, setPreviewOf] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [lightboxSrc, setLightboxSrc] = useState("");
 
   const dirty = useMemo(() => {
-    if (title.trim() || description.trim() || tags.trim()) return true;
+    if (title.trim() || description.trim() || tags.trim() || topic.trim() || posterImage || posterPreview) return true;
     if (type === "youtube" || type === "pdf")
-      return !!url.trim() || !!bannerPreview || !!bannerImage;
-    return !!body.trim() || !!bannerPreview || !!bannerImage;
-  }, [title, description, tags, type, url, body, bannerPreview, bannerImage]);
-
-  const canSave = useMemo(() => {
-    if (!title.trim()) return false;
-    if (type === "youtube" || type === "pdf") return !!url.trim();
+      return !!url.trim();
+    if (type === "poster")
+      return !!posterImage || !!posterPreview;
     return !!body.trim();
-  }, [title, type, url, body]);
+  }, [title, description, tags, topic, posterImage, posterPreview, type, url, body]);
 
-  async function handleBannerChoose(file) {
+  // Allow saving drafts with minimal fields (title + type)
+  const canSaveDraft = useMemo(() => {
+    return !!title.trim() && !!type;
+  }, [title, type]);
+
+  // Publishing requires full validations by type
+  const canPublish = useMemo(() => {
+    if (!canSaveDraft) return false;
+    if (type === "youtube" || type === "pdf") return !!url.trim();
+    if (type === "poster") return !!(posterImage || posterPreview);
+    return !!body.trim();
+  }, [canSaveDraft, type, url, body, posterImage, posterPreview]);
+
+  const validationIssues = useMemo(() => {
+    const issues = [];
+    if (!title.trim()) issues.push("Title is required");
+    if (!type) issues.push("Type is required");
+    if (type === "youtube" || type === "pdf") {
+      if (!url.trim()) issues.push("URL is required for this type");
+    }
+    if (type === "poster") {
+      if (!(posterImage || posterPreview)) issues.push("Poster image is required for Poster type");
+    }
+    if (type === "blog" || type === "writeup") {
+      if (!body.trim()) issues.push("Body content is required for text types");
+    }
+    return issues;
+  }, [title, type, url, posterImage, posterPreview, body]);
+
+  const isBlobUrl = (u) => typeof u === 'string' && u.startsWith('blob:');
+  const draft = useMemo(() => ({
+    title,
+    type,
+    description,
+    url,
+    body,
+    topic,
+    posterImage: isBlobUrl(posterImage) ? '' : (posterImage || ''),
+    tags: tags.split(",").map(s=>s.trim()).filter(Boolean)
+  }), [title, type, description, url, body, topic, posterImage, tags]);
+
+
+  // Banner upload removed
+
+  async function handlePosterUpload(file) {
     if (!file) return;
     const localUrl = URL.createObjectURL(file);
-    setBannerPreview(localUrl);
-    setBannerUploading(true);
+    setPosterPreview(localUrl);
+    setPosterUploading(true);
     try {
       const data = await contentApi.uploadImage(file);
-      setBannerImage(data.url);
+      setPosterImage(data.url);
     } catch (e) {
-      alert(e.message || "Banner upload failed");
+      // Keep local preview visible even if upload failed
+      alert(e.message || "Poster upload failed. Preview will still show locally.");
     } finally {
-      setBannerUploading(false);
-      setTimeout(() => URL.revokeObjectURL(localUrl), 5000);
+      setPosterUploading(false);
     }
   }
 
@@ -110,23 +205,31 @@ export default function ContentCreate() {
   }
 
   const saveDraft = async (publish = false) => {
-    if (!canSave) return;
+    // Guard based on the correct validation set
+    if (publish ? !canPublish : !canSaveDraft) return;
     try {
-      const item = await contentApi.create({
+      setErrorMsg("");
+      setSaving(true);
+      const payload = {
         title,
         type,
         description,
         url,
         body,
+        topic,
+        posterImage: isBlobUrl(posterImage) ? '' : (posterImage || ''),
         tags: tags.split(",").map((s) => s.trim()).filter(Boolean),
-        bannerImage: bannerImage || bannerPreview,
-      });
+      };
+      const item = await contentApi.create(payload);
       if (publish) await contentApi.publish(item._id || item.id);
       alert(publish ? "Published!" : "Saved draft");
       nav("/admin/content");
     } catch (e) {
-      alert(e.message || "Save failed");
+      const msg = e?.message || "Save failed";
+      setErrorMsg(msg);
+      alert(msg);
     }
+    finally { setSaving(false); }
   };
 
   const handleBack = () => {
@@ -136,54 +239,59 @@ export default function ContentCreate() {
 
   return (
     <div className="content-create-page">
-      {/* Top Header Bar */}
+      {/* Top Header Bar (match QuizCreate) */}
       <div className="admin-header">
         <div className="admin-header-left">
           <h1 className="admin-title">Admin Dashboard</h1>
         </div>
         <div className="admin-header-right">
-          <span className="admin-welcome">Welcome, Administrator</span>
-          <div className="admin-avatar">A</div>
-        </div>
-      </div>
-
-      {/* Content Creation Header */}
-      <div className="content-header">
-        <div className="content-header-left">
-          <button className="back-btn" onClick={handleBack}>
-            ← Back
-          </button>
-        </div>
-        <div className="content-header-center">
-          <h1 className="content-main-title">Create New Content</h1>
-          <p className="content-subtitle">Build engaging educational content.</p>
-        </div>
-        <div className="content-header-actions">
-          <button className="preview-btn">
+          <button 
+            className="preview-btn"
+            onClick={() => setPreviewOf(draft)}
+            disabled={!canSaveDraft || saving}
+            title={!canSaveDraft ? "Add a title and type to preview" : "Preview content"}
+          >
             <span className="btn-icon">👁️</span>
             Preview
           </button>
           <button 
             className="save-draft-btn"
-            disabled={!canSave}
+            disabled={!canSaveDraft || saving}
             onClick={() => saveDraft(false)}
+            title={!canSaveDraft ? "Enter a title and type to save draft" : "Save as draft"}
           >
-            <span className="btn-icon">📄</span>
-            Save Draft
+            <span className="btn-icon">💾</span>
+            {saving ? "Saving…" : "Save Draft"}
           </button>
           <button 
             className="publish-btn"
-            disabled={!canSave}
+            disabled={!canPublish || saving}
             onClick={() => saveDraft(true)}
+            title={!canPublish ? "Fill required fields before publishing" : "Publish this content"}
           >
-            Publish
+            {saving ? "Publishing…" : "Publish"}
           </button>
+          <span className="admin-welcome">Welcome, Administrator</span>
+          <div className="admin-avatar">A</div>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="content-main">
         <div className="content-left">
+          {/* Header Section (match QuizCreate) */}
+          <div className="content-header-section">
+            <button className="back-btn" onClick={handleBack}>← Back</button>
+            <div className="header-content">
+              <h1 className="content-main-title">Create New Educational Content</h1>
+              <p className="content-subtitle">Build engaging educational content for employee training and development.</p>
+            </div>
+          </div>
+          {errorMsg && (
+            <div className="content-section" style={{border:'1px solid #fecaca', background:'#fef2f2', color:'#991b1b'}}>
+              <strong>Action failed:</strong> {errorMsg}
+            </div>
+          )}
           {/* Basic Information Section */}
           <div className="content-section">
             <h2 className="section-title">Basic Information</h2>
@@ -199,30 +307,6 @@ export default function ContentCreate() {
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Banner Image URL</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="https://example.com/image.jpg"
-                value={bannerImage}
-                onChange={(e) => setBannerImage(e.target.value)}
-              />
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                onChange={(e) => handleBannerChoose(e.target.files?.[0])}
-                className="file-input"
-              />
-              {bannerUploading && <div className="upload-status">Uploading...</div>}
-              {(bannerPreview || bannerImage) && (
-                <img
-                  src={bannerImage || bannerPreview}
-                  alt="Banner preview"
-                  className="banner-preview"
-                />
-              )}
-            </div>
 
             <div className="form-group">
               <label className="form-label required">Content Type *</label>
@@ -236,6 +320,7 @@ export default function ContentCreate() {
                 <option value="pdf">PDF Document</option>
                 <option value="blog">Blog Post</option>
                 <option value="writeup">Write-up</option>
+                <option value="poster">Poster</option>
               </select>
             </div>
 
@@ -249,13 +334,73 @@ export default function ContentCreate() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
+
+            <div className="form-group">
+              <label className="form-label">Topic</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g., Cybersecurity Fundamentals, Phishing Awareness, Password Security"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+              />
+            </div>
+
+            {/* Banner removed */}
+
+            {type === "poster" && (
+              <div className="form-group">
+                <label className="form-label required">Poster Image *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="https://example.com/poster.jpg"
+                  value={posterImage}
+                  onChange={(e) => setPosterImage(e.target.value)}
+                />
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  onChange={(e) => handlePosterUpload(e.target.files?.[0])}
+                  className="file-input"
+                />
+                {posterUploading && <div className="upload-status">Uploading poster...</div>}
+                {(posterPreview || posterImage) && (
+                  <div className="poster-preview-container">
+                    <img
+                      src={posterImage || posterPreview}
+                      alt="Poster preview"
+                      className="poster-preview"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const container = e.currentTarget.parentElement;
+                        if (!container.querySelector('.banner-error')) {
+                          const errorDiv = document.createElement('div');
+                          errorDiv.className = 'banner-error';
+                          errorDiv.textContent = 'Failed to load image preview';
+                          container.appendChild(errorDiv);
+                        }
+                      }}
+                      onClick={() => setLightboxSrc(posterImage || posterPreview)}
+                      style={{ cursor: 'zoom-in' }}
+                    />
+                    <div style={{ marginTop: 6 }}>
+                      <button type="button" className="btn btn-outline" onClick={() => setLightboxSrc(posterImage || posterPreview)}>
+                        View full size
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Content Body Section */}
-          <div className="content-section">
-            <h2 className="section-title">Content Body</h2>
-            
-            {(type === "blog" || type === "writeup") && (
+          {type !== "poster" && (
+            <div className="content-section">
+              <h2 className="section-title">Content Body</h2>
+              
+              {(type === "blog" || type === "writeup") && (
               <div className="form-group">
                 <textarea
                   ref={bodyRef}
@@ -303,38 +448,52 @@ export default function ContentCreate() {
                 )}
               </div>
             )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Side Panel */}
         <div className="content-right">
+          {/* Validation Issues */}
+          {validationIssues.length > 0 && (
+            <div className="content-section">
+              <h2 className="section-title" style={{color:'#e74c3c'}}>Validation</h2>
+              <ul style={{color:'#e74c3c', fontSize:'0.9rem', margin:0, paddingLeft:'1.2rem'}}>
+                {validationIssues.map((v, i) => (
+                  <li key={i} style={{marginBottom:4}}>{v}</li>
+                ))}
+              </ul>
+            </div>
+          )}
           {/* Resources Section */}
-          <div className="content-section">
-            <h2 className="section-title">Resources</h2>
-            
-            <div className="form-group">
-              <select className="form-select">
-                <option>External Link</option>
-                <option>File Upload</option>
-                <option>Video</option>
-              </select>
-            </div>
+          {type !== "poster" && (
+            <div className="content-section">
+              <h2 className="section-title">Resources</h2>
+              
+              <div className="form-group">
+                <select className="form-select">
+                  <option>External Link</option>
+                  <option>File Upload</option>
+                  <option>Video</option>
+                </select>
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">Resource title</label>
-              <input type="text" className="form-input" />
-            </div>
+              <div className="form-group">
+                <label className="form-label">Resource title</label>
+                <input type="text" className="form-input" />
+              </div>
 
-            <div className="form-group">
-              <label className="form-label">URL</label>
-              <input type="url" className="form-input" />
-            </div>
+              <div className="form-group">
+                <label className="form-label">URL</label>
+                <input type="url" className="form-input" />
+              </div>
 
-            <button className="add-resource-btn">
-              <span className="btn-icon">+</span>
-              Add Resource
-            </button>
-          </div>
+              <button className="add-resource-btn">
+                <span className="btn-icon">+</span>
+                Add Resource
+              </button>
+            </div>
+          )}
 
           {/* Tags Section */}
           <div className="content-section">
@@ -357,11 +516,14 @@ export default function ContentCreate() {
       </div>
 
       {/* Preview Modal */}
-      {type === "youtube" && url && (
-        <div className="preview-section">
-          <h3 className="preview-title">Preview</h3>
-          <div className="preview-video-container">
-            <YouTubeEmbed url={url} />
+      <PreviewModal item={previewOf} onClose={() => setPreviewOf(null)} />
+
+      {/* Image Lightbox */}
+      {lightboxSrc && (
+        <div className="modal-overlay" onClick={() => setLightboxSrc("")}>
+          <div className="image-lightbox" onClick={(e) => e.stopPropagation()}>
+            <img src={lightboxSrc} alt="Full preview" className="image-lightbox-img" />
+            <button className="close-btn" onClick={() => setLightboxSrc("")}>Close</button>
           </div>
         </div>
       )}

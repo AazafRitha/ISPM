@@ -3,8 +3,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { quizApi } from "../../api/quizzes";
 import QuestionCard from "../../components/QuestionCard";
-import { contentApi } from "../../api/content";
 import "./QuizCreate.css";
+import { badgeAssetForDifficulty } from "../../lib/badges";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -59,19 +59,18 @@ export default function QuizCreate() {
   // Quiz meta
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [bannerImageUrl, setBannerImageUrl] = useState("");
+  // Banner removed
   const [difficulty, setDifficulty] = useState("easy");
   const [timeLimitMin, setTimeLimitMin] = useState(30);
   const [passingScore, setPassingScore] = useState(70);
 
-  // Badge
-  const [badgeTitle, setBadgeTitle] = useState("");
-  const [badgeDescription, setBadgeDescription] = useState("");
+  // Badge removed
 
   // Questions
   const [questions, setQuestions] = useState([]);
   const [saving, setSaving] = useState(false);
   const [previewOf, setPreviewOf] = useState(null);
+  const [lightboxSrc, setLightboxSrc] = useState("");
 
   const addQuestion = (type) => {
     const newQuestion = {
@@ -93,54 +92,154 @@ export default function QuizCreate() {
   const removeQuestion = (id) =>
     setQuestions(prev => prev.filter(q => q.id !== id));
 
+  // Banner and badge upload handlers removed
+
+  const isBlobUrl = (u) => typeof u === 'string' && u.startsWith('blob:');
   const draft = useMemo(() => ({
     title,
     description,
-    bannerImageUrl,
     difficulty,
     timeLimitMin: Number(timeLimitMin) || null,
     passingScore: Number(passingScore) || 70,
-    badgeTitle,
-    badgeDescription,
     status: "draft",
     questions,
     totalPoints: questions.reduce((sum, q) => sum + (q.points || 1), 0)
-  }), [title, description, bannerImageUrl, difficulty, timeLimitMin, passingScore, badgeTitle, badgeDescription, questions]);
+  }), [title, description, difficulty, timeLimitMin, passingScore, questions]);
 
-  const canSave = Boolean(
-    title.trim() &&
-    badgeTitle.trim() &&
-    questions.length > 0 &&
-    questions.every(q => {
-      if (!q.stem?.trim()) return false;
-      if (q.type === "short") return true; // Short answer doesn't need options
-      if (q.type === "tf") return q.options?.length === 2 && q.options.some(o => o.isCorrect);
-      return (q.options?.length > 0) && q.options.some(o => o.isCorrect);
-    })
-  );
+  // Validation helper
+  const getValidationIssues = () => {
+    const issues = [];
+    if (!title.trim()) issues.push("Quiz title is required");
+    if (questions.length === 0) issues.push("At least one question is required");
+    
+    questions.forEach((q, idx) => {
+      if (!q.stem?.trim()) {
+        issues.push(`Question ${idx + 1}: Question text is required`);
+      } else if (q.type === "mcq") {
+        if (!q.options?.length || !q.options.some(o => o.isCorrect)) {
+          issues.push(`Question ${idx + 1}: Multiple choice needs at least one correct option`);
+        }
+        if ((q.options?.length || 0) < 2) {
+          issues.push(`Question ${idx + 1}: Multiple choice needs at least 2 options`);
+        }
+      } else if (q.type === "tf" && (!q.options?.length || !q.options.some(o => o.isCorrect))) {
+        issues.push(`Question ${idx + 1}: True/False needs a correct answer selected`);
+      }
+    });
+    
+    return issues;
+  };
+
+  const validationIssues = getValidationIssues();
+  const canSave = validationIssues.length === 0;
+
+  // Transform frontend data structure to backend format
+  const transformQuizForBackend = (quiz) => {
+    return {
+      title: quiz.title,
+      description: quiz.description,
+      difficulty: quiz.difficulty,
+      timeLimit: Number(quiz.timeLimitMin) || 0,
+      passingScore: Number(quiz.passingScore) || 70,
+      status: quiz.status,
+      questions: quiz.questions.map(q => {
+        // Normalize type: treat 'single' as 'mcq' in backend
+        const normalizedType = q.type === 'single' ? 'mcq' : q.type;
+        // Convert frontend question format to backend format
+        const backendQuestion = {
+          question: q.stem,
+          type: normalizedType === "mcq" ? "multiple-choice" : 
+                normalizedType === "tf" ? "true-false" : 
+                normalizedType === "short" ? "text" : normalizedType,
+          explanation: q.explanation || "",
+          points: q.points || 1
+        };
+
+        if (normalizedType === "mcq") {
+          // Multiple choice: extract options and find correct answer
+          const opts = (q.options || []).map(opt => ({ ...opt }));
+          // Ensure only one correct answer for single/mcq
+          const firstCorrect = opts.findIndex(o => o.isCorrect);
+          backendQuestion.options = opts.map(opt => opt.text);
+          const correctIndex = firstCorrect >= 0 ? firstCorrect : 0;
+          backendQuestion.correctAnswer = correctIndex >= 0 ? correctIndex.toString() : "0";
+        } else if (normalizedType === "tf") {
+          // True/False: options array and correct answer
+          const opts = (q.options || []).map(opt => ({ ...opt }));
+          backendQuestion.options = opts.map(opt => opt.text);
+          const correctOption = opts.find(opt => opt.isCorrect);
+          backendQuestion.correctAnswer = correctOption ? correctOption.text : "True";
+        } else if (normalizedType === "short") {
+          // Short answer: no options needed, correctAnswer can be empty for manual grading
+          backendQuestion.options = [];
+          backendQuestion.correctAnswer = ""; // Will need manual grading
+        }
+
+        return backendQuestion;
+      })
+    };
+  };
 
   const save = async () => {
-    if (!canSave) return;
+    if (!canSave) {
+      console.warn("Cannot save quiz: validation failed");
+      return;
+    }
+    
     setSaving(true);
     try {
-      await quizApi.create(draft);
+      const backendPayload = transformQuizForBackend(draft);
+      console.log("Saving quiz with payload:", JSON.stringify(backendPayload, null, 2));
+      
+      const result = await quizApi.create(backendPayload);
+      console.log("Quiz saved successfully:", result);
       nav("/admin/quizzes");
     } catch (e) {
-      alert(e.message || e);
+      console.error("Save error full object:", e);
+      console.error("Save error message:", e.message);
+      
+      let errorMessage = e.message || "Unknown error";
+      if (e.data) {
+        errorMessage = e.data.error || e.data.message || errorMessage;
+        if (e.data.details) {
+          errorMessage += "\nDetails: " + e.data.details.join(", ");
+        }
+      }
+      alert(`Failed to save quiz:\n${errorMessage}`);
     } finally {
       setSaving(false);
     }
   };
 
   const publish = async () => {
-    if (!canSave) return;
+    if (!canSave) {
+      console.warn("Cannot publish quiz - validation failed");
+      return;
+    }
+    
     setSaving(true);
     try {
-      const quiz = await quizApi.create(draft);
-      await quizApi.publish(quiz._id || quiz.id);
+      const backendPayload = transformQuizForBackend(draft);
+      console.log("Publishing quiz with payload:", backendPayload);
+      
+      const quiz = await quizApi.create(backendPayload);
+      console.log("Quiz created:", quiz);
+      
+      const publishResult = await quizApi.publish(quiz._id || quiz.id);
+      console.log("Quiz published:", publishResult);
+      
       nav("/admin/quizzes");
     } catch (e) {
-      alert(e.message || e);
+      console.error("Publish error full object:", e);
+      console.error("Publish error message:", e.message);
+      let errorMessage = e.message || "Unknown error";
+      if (e.data) {
+        errorMessage = e.data.error || e.data.message || errorMessage;
+        if (e.data.details) {
+          errorMessage += "\nDetails: " + e.data.details.join(", ");
+        }
+      }
+      alert(`Failed to publish quiz:\n${errorMessage}`);
     } finally {
       setSaving(false);
     }
@@ -158,6 +257,7 @@ export default function QuizCreate() {
             className="preview-btn"
             onClick={() => setPreviewOf(draft)} 
             disabled={!canSave}
+            title={!canSave ? `Cannot preview: ${validationIssues[0]}` : "Preview quiz"}
           >
             <span className="btn-icon">👁️</span>
             Preview
@@ -166,16 +266,18 @@ export default function QuizCreate() {
             className="save-draft-btn"
             onClick={save} 
             disabled={!canSave || saving}
+            title={!canSave ? `Cannot save: ${validationIssues[0]}` : saving ? "Saving..." : "Save as draft"}
           >
             <span className="btn-icon">💾</span>
-            Save Draft
+            {saving ? "Saving..." : "Save Draft"}
           </button>
           <button 
             className="publish-btn"
             onClick={publish} 
             disabled={!canSave || saving}
+            title={!canSave ? `Cannot publish: ${validationIssues[0]}` : saving ? "Publishing..." : "Publish quiz live"}
           >
-            Publish Quiz
+            {saving ? "Publishing..." : "Publish Quiz"}
           </button>
           <span className="admin-welcome">Welcome, Administrator</span>
           <div className="admin-avatar">A</div>
@@ -185,6 +287,10 @@ export default function QuizCreate() {
       {/* Main Content Area */}
       <div className="content-main">
         <div className="content-left">
+          {/* Difficulty-based Banner Preview */}
+          <div className={`banner-preview-strip diff-${difficulty}`}>
+            <div className="banner-preview-title">{title || "Your Quiz Title"}</div>
+          </div>
           {/* Header Section */}
           <div className="content-header-section">
             <button className="back-btn" onClick={() => nav("/admin/quizzes")}>
@@ -192,7 +298,7 @@ export default function QuizCreate() {
             </button>
             <div className="header-content">
               <h1 className="content-main-title">Create New Quiz</h1>
-              <p className="content-subtitle">Design engaging quizzes with custom badges.</p>
+              <p className="content-subtitle">Design engaging quizzes for your teams.</p>
             </div>
           </div>
 
@@ -221,15 +327,8 @@ export default function QuizCreate() {
               />
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Banner Image URL</label>
-              <input 
-                value={bannerImageUrl} 
-                onChange={(e) => setBannerImageUrl(e.target.value)}
-                className="form-input"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
+            {/* Banner removed */}
+
 
             <div className="form-grid">
               <div className="form-group">
@@ -244,7 +343,6 @@ export default function QuizCreate() {
                   <option value="hard">Hard</option>
                 </select>
               </div>
-              
               <div className="form-group">
                 <label className="form-label">Time Limit (minutes)</label>
                 <input 
@@ -255,7 +353,6 @@ export default function QuizCreate() {
                   className="form-input"
                 />
               </div>
-              
               <div className="form-group">
                 <label className="form-label">Passing Score (%)</label>
                 <input 
@@ -268,88 +365,111 @@ export default function QuizCreate() {
                 />
               </div>
             </div>
-          </div>
 
-          {/* Questions Section */}
-          <div className="content-section">
-            <div className="questions-header">
-              <h2 className="section-title">Questions ({questions.length})</h2>
-              <div className="total-points">Total Points: {draft.totalPoints}</div>
+            {/* Badge Preview based on difficulty */}
+            <div className="badge-preview-row">
+              {(() => {
+                const asset = badgeAssetForDifficulty(difficulty);
+                return (
+                  <div className="badge-preview-box">
+                    <img src={asset.image} alt={asset.title} className="badge-preview" />
+                    <div className="badge-preview-meta">
+                      <div className="badge-preview-title">Preview badge: {asset.title}</div>
+                      <div className="badge-preview-note">This is what employees will claim after completion.</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
-            <div className="question-type-buttons">
-              <button 
-                className="question-type-btn"
-                onClick={() => addQuestion("mcq")}
-              >
-                <span className="btn-icon">✓</span>
-                Add Multiple Choice
-              </button>
-              <button 
-                className="question-type-btn"
-                onClick={() => addQuestion("tf")}
-              >
-                <span className="btn-icon">✗</span>
-                Add True/False
-              </button>
-              <button 
-                className="question-type-btn"
-                onClick={() => addQuestion("short")}
-              >
-                <span className="btn-icon">?</span>
-                Add Short Answer
-              </button>
-            </div>
+            {/* Questions Section */}
+            <div className="content-section">
+              <div className="questions-header">
+                <h2 className="section-title">Questions ({questions.length})</h2>
+                <div className="total-points">Total Points: {draft.totalPoints}</div>
+              </div>
 
-            <div className="questions-list">
-              {questions.map((q) => (
-                <QuestionCard 
-                  key={q.id} 
-                  q={q} 
-                  onChange={(next) => updateQuestion(q.id, next)} 
-                  onRemove={() => removeQuestion(q.id)} 
-                />
-              ))}
-              {questions.length === 0 && (
-                <div className="empty-questions">
-                  <div className="empty-icon">?</div>
-                  <p>No questions added yet. Use the buttons above to add your first question.</p>
+              <div className="question-type-buttons">
+                <button 
+                  className="question-type-btn"
+                  onClick={() => addQuestion("mcq")}
+                >
+                  <span className="btn-icon">✓</span>
+                  Add Multiple Choice
+                </button>
+                <button 
+                  className="question-type-btn"
+                  onClick={() => addQuestion("tf")}
+                >
+                  <span className="btn-icon">✗</span>
+                  Add True/False
+                </button>
+                <button 
+                  className="question-type-btn"
+                  onClick={() => addQuestion("short")}
+                >
+                  <span className="btn-icon">?</span>
+                  Add Short Answer
+                </button>
+              </div>
+
+              <div className="questions-list">
+                {questions.map((q) => (
+                  <QuestionCard 
+                    key={q.id} 
+                    q={q} 
+                    onChange={(next) => updateQuestion(q.id, next)} 
+                    onRemove={() => removeQuestion(q.id)} 
+                  />
+                ))}
+                {questions.length === 0 && (
+                  <div className="empty-questions">
+                    <div className="empty-icon">?</div>
+                    <p>No questions added yet. Use the buttons above to add your first question.</p>
+                  </div>
+                )}
+
+                {/* Add Question buttons at bottom */}
+                <div className="question-type-buttons bottom">
+                  <button 
+                    className="question-type-btn"
+                    onClick={() => addQuestion("mcq")}
+                  >
+                    <span className="btn-icon">✓</span>
+                    Add Multiple Choice
+                  </button>
+                  <button 
+                    className="question-type-btn"
+                    onClick={() => addQuestion("tf")}
+                  >
+                    <span className="btn-icon">✗</span>
+                    Add True/False
+                  </button>
+                  <button 
+                    className="question-type-btn"
+                    onClick={() => addQuestion("short")}
+                  >
+                    <span className="btn-icon">?</span>
+                    Add Short Answer
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
-
         {/* Right Sidebar */}
         <div className="content-right">
-          {/* Completion Badge */}
-          <div className="content-section">
-            <h2 className="section-title">
-              <span className="section-icon">🏆</span>
-              Completion Badge
-            </h2>
-            
-            <div className="form-group">
-              <label className="form-label required">Badge Title *</label>
-              <input 
-                value={badgeTitle} 
-                onChange={(e) => setBadgeTitle(e.target.value)}
-                className="form-input"
-                placeholder="e.g., JavaScript Master"
-              />
+          {/* Validation Status */}
+          {validationIssues.length > 0 && (
+            <div className="content-section">
+              <h2 className="section-title" style={{color: '#e74c3c'}}>⚠️ Validation Issues</h2>
+              <ul style={{color: '#e74c3c', fontSize: '0.875rem', lineHeight: '1.4'}}>
+                {validationIssues.map((issue, idx) => (
+                  <li key={idx} style={{marginBottom: '0.25rem'}}>{issue}</li>
+                ))}
+              </ul>
             </div>
-
-            <div className="form-group">
-              <label className="form-label">Badge Description</label>
-              <textarea 
-                rows={3} 
-                value={badgeDescription} 
-                onChange={(e) => setBadgeDescription(e.target.value)}
-                className="form-textarea"
-                placeholder="Describe what this badge represents..."
-              />
-            </div>
-          </div>
+          )}
 
           {/* Quiz Summary */}
           <div className="content-section">
@@ -376,12 +496,54 @@ export default function QuizCreate() {
                 <span className="stat-label">Passing Score:</span>
                 <span className="stat-value">{passingScore}%</span>
               </div>
+              <div className="stat-item">
+                <span className="stat-label">Status:</span>
+                <span className="stat-value" style={{color: canSave ? '#27ae60' : '#e74c3c'}}>
+                  {canSave ? '✓ Ready to save' : '⚠️ Has issues'}
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* Employee completion preview */}
+          <div className="content-section">
+            <h2 className="section-title">Employee Completion Preview</h2>
+            {(() => {
+              const asset = badgeAssetForDifficulty(difficulty);
+              return (
+                <div className="employee-complete-card">
+                  <div className="employee-complete-left">
+                    <img src={asset.image} alt={asset.title} className="employee-complete-badge" />
+                  </div>
+                  <div className="employee-complete-right">
+                    <h3>Congratulations! 🎉</h3>
+                    <p>
+                      This is how it will look when an employee completes "{title || "Your quiz title"}".
+                      They’ll be able to claim a {difficulty} badge like this one.
+                    </p>
+                    <div className="employee-complete-actions">
+                      <button className="btn btn-primary" disabled>Claim Badge</button>
+                      <button className="btn btn-outline" disabled>View Badges</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
 
       <PreviewModal quiz={previewOf} onClose={() => setPreviewOf(null)} />
+
+      {/* Image Lightbox */}
+      {lightboxSrc && (
+        <div className="modal-overlay" onClick={() => setLightboxSrc("")}>
+          <div className="image-lightbox" onClick={(e) => e.stopPropagation()}>
+            <img src={lightboxSrc} alt="Full preview" className="image-lightbox-img" />
+            <button className="close-btn" onClick={() => setLightboxSrc("")}>Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

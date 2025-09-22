@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./AdminDashboard.css";
+import { getAdminProfile } from "../../services/adminApi";
+import { getAuth } from "../../lib/auth";
 
 const initialState = {
   totalEmployees: 0,
@@ -18,6 +20,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(initialState);
   const [error, setError] = useState("");
+  const [adminName, setAdminName] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,40 +28,46 @@ export default function AdminDashboard() {
 
     async function load() {
       try {
-        const res = await fetch("/api/admin/metrics");
-        if (!res.ok) throw new Error("Failed to load metrics");
+        const res = await fetch("http://localhost:5000/api/admin/metrics");
+        if (!res.ok) throw new Error(`Failed to load metrics: ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
           setMetrics({ ...initialState, ...data });
           setLoading(false);
+          setError(""); // Clear any previous errors
         }
       } catch (e) {
+        console.error("Dashboard metrics error:", e);
         // Fallback demo data (safe if backend not ready)
         if (!cancelled) {
           setMetrics({
-            totalEmployees: 42,
-            activeContent: 18,
-            publishedQuizzes: 7,
-            phishingCampaigns: 3,
-            systemHealth: 98.5,
+            totalEmployees: 0,
+            activeContent: 0,
+            publishedQuizzes: 0,
+            phishingCampaigns: 0,
+            systemHealth: 0,
             recent: {
-              employees: [
-                { name: "A. Perera", dept: "IT", when: "2h ago" },
-                { name: "H. Fernando", dept: "HR", when: "5h ago" },
-                { name: "R. Silva", dept: "Finance", when: "1d ago" },
-              ],
-              content: [
-                { title: "Password Hygiene 101", when: "Today" },
-                { title: "Phishing Red Flags", when: "Yesterday" },
-              ],
+              employees: [],
+              content: [],
             },
           });
-          setError(e.message);
+          setError(`Backend connection failed: ${e.message}. Showing empty state.`);
           setLoading(false);
         }
       }
     }
     load();
+
+    // Load admin name for welcome note
+    (async () => {
+      try {
+        const p = await getAdminProfile();
+        if (!cancelled) setAdminName(p?.name || "");
+      } catch {
+        const auth = getAuth?.() || {};
+        if (!cancelled) setAdminName(auth.name || "Admin");
+      }
+    })();
     return () => { cancelled = true; };
   }, []);
 
@@ -81,6 +90,12 @@ export default function AdminDashboard() {
       ) : (
         <>
           {error ? <div className="alert">Using demo data: {error}</div> : null}
+
+          {/* Welcome note */}
+          <div className="card" style={{ marginBottom: 16 }}>
+            <h3 style={{ margin: 0 }}>Welcome{adminName ? `, ${adminName}` : ''} 👋</h3>
+            <p style={{ margin: '6px 0 0', color: '#6b7280' }}>Here’s what’s happening across employees, content, quizzes, and simulations today.</p>
+          </div>
 
           {/* KPI cards */}
           <div className="kpi-grid">
@@ -109,7 +124,9 @@ export default function AdminDashboard() {
                 <Link className="ql" to="/admin/content">Manage Content</Link>
                 <Link className="ql" to="/admin/quizzes">Manage Quizzes</Link>
                 <Link className="ql" to="/admin/phishing-simulation">Phishing Simulation</Link>
-                <Link className="ql" to="/admin/profile">Edit Profile</Link>
+                <Link className="ql" to="/admin/policies">Policy Management</Link>
+                <Link className="ql" to="/admin/profile">
+                Edit Profile</Link>
               </div>
             </div>
           </div>
@@ -118,30 +135,38 @@ export default function AdminDashboard() {
           <div className="two-col">
             <div className="card">
               <h3 className="card-title">Recent Employees</h3>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Name</th><th>Department</th><th>When</th></tr>
-                </thead>
-                <tbody>
-                  {metrics.recent.employees.map((e, i) => (
-                    <tr key={i}><td>{e.name}</td><td>{e.dept}</td><td>{e.when}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+              {metrics.recent.employees.length > 0 ? (
+                <table className="tbl">
+                  <thead>
+                    <tr><th>Name</th><th>Department</th><th>When</th></tr>
+                  </thead>
+                  <tbody>
+                    {metrics.recent.employees.map((e, i) => (
+                      <tr key={i}><td>{e.name}</td><td>{e.dept}</td><td>{e.when}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="no-data">No employees found. <Link to="/admin/employees">Add your first employee</Link></p>
+              )}
             </div>
 
             <div className="card">
               <h3 className="card-title">Recent Content</h3>
-              <table className="tbl">
-                <thead>
-                  <tr><th>Title</th><th>Published</th></tr>
-                </thead>
-                <tbody>
-                  {metrics.recent.content.map((c, i) => (
-                    <tr key={i}><td>{c.title}</td><td>{c.when}</td></tr>
-                  ))}
-                </tbody>
-              </table>
+              {metrics.recent.content.length > 0 ? (
+                <table className="tbl">
+                  <thead>
+                    <tr><th>Title</th><th>Published</th></tr>
+                  </thead>
+                  <tbody>
+                    {metrics.recent.content.map((c, i) => (
+                      <tr key={i}><td>{c.title}</td><td>{c.when}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="no-data">No published content found. <Link to="/admin/content">Create your first content</Link></p>
+              )}
             </div>
           </div>
         </>

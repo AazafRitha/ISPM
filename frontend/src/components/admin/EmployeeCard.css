@@ -1,0 +1,86 @@
+.employee-card.flat-card {
+  width: 240px;              /* smaller card width */
+  border-radius: 10px;
+  background: #fff;
+  color: #222;
+  border: 1px solid #e0e0e0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 10px;              /* small spacing between cards */
+}
+
+.employee-initial-section {
+  width: 100%;
+  background: #f7f7f7;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;           /* top/bottom padding only */
+  margin: 0;                 /* remove any gap */
+}
+
+.employee-initial {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #222;
+  letter-spacing: 2px;
+  text-align: center;
+}
+
+.employee-name-centered {
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: #111;
+  text-align: left;          /* ⬅ left aligned */
+  margin: 8px 0;
+}
+
+.employee-card-content {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;          /* ⬅ force left align for all text */
+}
+
+.employee-card-content p {
+  margin: 2px 0;
+  font-size: 0.85rem;
+  color: #333;
+  text-align: left;          /* ⬅ ensure left alignment */
+}
+
+.employee-card-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px 12px 14px;
+  background: transparent;
+}
+
+.ghost-btn {
+  background: transparent;
+  color: #111;
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin: 2px;
+}
+
+.ghost-btn:hover {
+  background-color: rgba(0,0,0,0.05);
+  border-color: #888;
+}
+
+.ghost-btn.delete {
+  color: #ff6b6b;
+  border-color: #aa5555;
+}
+
+.ghost-btn.delete:hover {
+  background-color: rgba(255,107,107,0.1);
+}

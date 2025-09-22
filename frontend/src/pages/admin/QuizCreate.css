@@ -159,6 +159,25 @@
   margin: 0;
 }
 
+/* Difficulty Banner Preview */
+.banner-preview-strip {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 0 0 1rem 0;
+}
+
+.banner-preview-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
+  text-align: center;
+}
+
+.diff-easy { background: #ecfdf5; }
+.diff-medium { background: #fffbeb; }
+.diff-hard { background: #fef2f2; }
+
 /* Content Sections */
 .content-section {
   background: white;
@@ -619,4 +638,132 @@
   .header-content {
     text-align: center;
   }
+}
+
+/* Badge Preview Styles */
+.badge-preview-container {
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.badge-preview {
+  max-width: 120px;
+  max-height: 120px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
+}
+
+.upload-status {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-style: italic;
+}
+
+.banner-error {
+  color: #e74c3c;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  text-align: center;
+  padding: 0.5rem;
+  background-color: #fdf2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+}
+
+/* Image Lightbox */
+.image-lightbox {
+  background: white;
+  border-radius: 8px;
+  padding: 0.75rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.image-lightbox-img {
+  max-width: 88vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Banner Preview Styles */
+.banner-preview-container {
+  margin-top: 0.75rem;
+  text-align: center;
+}
+
+.banner-preview {
+  max-width: 100%;
+  max-height: 200px;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  object-fit: contain;
+}
+
+/* Inline badge preview under difficulty */
+.badge-preview-row {
+  margin-top: 0.5rem;
+}
+
+.badge-preview-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.badge-preview-meta .badge-preview-title {
+  font-weight: 600;
+  color: #111827;
+}
+
+.badge-preview-meta .badge-preview-note {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.question-type-buttons.bottom {
+  margin-top: 1rem;
+}
+
+/* Employee completion preview */
+.employee-complete-card {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 1rem;
+  align-items: center;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.employee-complete-badge {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+}
+
+.employee-complete-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }

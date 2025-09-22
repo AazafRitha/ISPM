@@ -91,22 +91,32 @@
   
   .input, .textarea {
     width: 100%;
+    box-sizing: border-box;
     border: 2px solid var(--gray-200);
     border-radius: 12px;
-    padding: 14px 16px;
+    padding: 12px 14px;
     font-size: 16px;
+    line-height: 1.4;
     color: var(--gray-900);
     background: var(--gray-50);
-    transition: all 0.3s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     font-family: inherit;
+  }
+
+  /* Consistent heights */
+  .input { min-height: 44px; }
+  .textarea { min-height: 120px; resize: vertical; }
+
+  /* Placeholder styling */
+  .input::placeholder, .textarea::placeholder {
+    color: var(--gray-400);
   }
   
   .input:focus, .textarea:focus { 
     outline: none; 
     border-color: var(--primary); 
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    transform: translateY(-1px);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
   }
   
   .input:hover, .textarea:hover {
@@ -114,9 +124,31 @@
     background: #fff;
   }
   
-  .textarea {
-    resize: vertical;
-    min-height: 120px;
+  /* Disabled state */
+  .input:disabled, .textarea:disabled {
+    background: var(--gray-100);
+    color: var(--gray-500);
+    border-color: var(--gray-200);
+    cursor: not-allowed;
+  }
+
+  /* Invalid visual hint on focus (avoids red border before interaction) */
+  .input:focus:invalid, .textarea:focus:invalid {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+
+  /* Improve label feedback when field is focused */
+  .label:focus-within span {
+    color: var(--gray-900);
+  }
+
+  /* Autofill tweaks */
+  input.input:-webkit-autofill,
+  textarea.textarea:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px #fff inset;
+    -webkit-text-fill-color: var(--gray-900);
+    transition: background-color 9999s ease-in-out 0s;
   }
   
   .alert { 
@@ -215,6 +247,52 @@
   .link:hover {
     color: #f59e0b;
     text-decoration: underline;
+  }
+  
+  /* Contact Security Team section */
+  .contact-team {
+    margin-top: 32px;
+    background: #eaf2f8;
+    border: 1px solid var(--gray-200);
+    border-radius: 20px;
+    padding: 28px 20px;
+  }
+  .contact-team-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--gray-800);
+    margin: 0 0 16px 0;
+  }
+  .contact-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .contact-card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 6px 16px rgba(0,0,0,.06);
+  }
+  .contact-icon-tile {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    background: #eef2ff; color: #1f2937;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .contact-card-title { margin: 4px 0 8px; font-weight: 800; color: #0f172a; }
+  .contact-line { margin: 4px 0; color: var(--gray-700); }
+  .contact-link { color: #2563eb; text-decoration: none; }
+  .contact-link:hover { text-decoration: underline; }
+  
+  @media (max-width: 1100px) {
+    .contact-cards-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 640px) {
+    .contact-cards-grid { grid-template-columns: 1fr; }
   }
   
   /* Responsive Design */
